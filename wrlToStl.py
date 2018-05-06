@@ -1,4 +1,6 @@
 import os, sys
+import re
+import struct
 
 """
 Ed Yashin 04/14/2018
@@ -16,15 +18,23 @@ basic mesh editing software so far so I am not worried yet.
 """
 
 class wrlToStl():
-    def __init__(self, wrl):
-        self.wrl_file = open(wrl, 'r')
-        self.basename = os.path.splitext(wrl)[0]
-        self.vertices = []
-        self.vert_normals = []
-        self.face_normals = []
+    def __init__(self, wrl, format='binary'):
 
-        self.parseWrl()
-        self.writeStl()
+        if wrl != 'None':
+            self.wrl_file = open(wrl, 'r')
+            self.basename = os.path.splitext(wrl)[0]
+            self.vertices = []
+            self.vert_normals = []
+            self.face_normals = []
+
+            self.parseWrl()
+            if format == 'binary':
+                self.writeBinaryStl()
+            elif format == 'ascii':
+                self.writeAsciiStl()
+
+        else:
+            pass
 
     def getVertices(self):
         # get to the list of vertices
@@ -89,8 +99,8 @@ class wrlToStl():
         self.getNormals()
         self.calculateFaceNormals()
 
-    def writeStl(self):
-        output = open('%s.stl' % self.basename, 'w')
+    def writeAsciiStl(self):
+        output = open('%s-ascii.stl' % self.basename, 'w')
         output.write('solid %s\n' % self.basename)
         print('Writing triangles...')
 
@@ -126,11 +136,95 @@ class wrlToStl():
         output.write('endsolid %s' % self.basename)
         print('\nThank you')
 
+    def writeBinaryStl(self):
+        output = open('%s-binary.stl' % self.basename, 'wb')
+        output.write(b"\0" * 80)
+        triCount = len(self.face_normals)
+        output.write(struct.pack('<L', triCount))
+        print('writing triangles...')
+
+        for idx, face in enumerate(self.face_normals):
+            vert_i = idx*3
+            try:
+                x1 = self.vertices[vert_i][0]
+                y1 = self.vertices[vert_i][1]
+                z1 = self.vertices[vert_i][2]
+
+                x2 = self.vertices[vert_i+1][0]
+                y2 = self.vertices[vert_i+1][1]
+                z2 = self.vertices[vert_i+1][2]
+
+                x3 = self.vertices[vert_i+2][0]
+                y3 = self.vertices[vert_i+2][1]
+                z3 = self.vertices[vert_i+2][2]
+
+                xn = face[0]
+                yn = face[1]
+                zn = face[2]
+
+                output.write(struct.pack('fff', xn,yn,zn))
+                output.write(struct.pack('fff', x1,y1,z1))
+                output.write(struct.pack('fff', x2,y2,z2))
+                output.write(struct.pack('fff', x3,y3,z3))
+                output.write(b'\0\0')
+
+                sys.stdout.write('\rWritten facet # %d of %d' % (idx, len(self.face_normals)))
+            except IndexError:
+                output.close()
+                break
+
+
+    def convertToBinary(self, ascii_stl):
+        original = open(ascii_stl, 'r')
+
+        outFilename = os.path.splitext(ascii_stl)[0] + '-binary.stl'
+        outFile = open(outFilename, 'wb')
+        outFile.write(b"\0" * 80)
+        outFile.write(b'ffff') #triangle count tbd
+        triCount = 0
+
+        skip = original.readline() #solid
+
+        while 1:
+            line = original.readline()
+            if 'endsolid' in line: # reached the end of file
+                break
+            triCount += 1
+
+            line = re.sub('facet normal', '', line).lstrip()
+            print(line)
+            normal = line.split(' ')
+            skip = original.readline() # 'outer loop'
+
+            line = original.readline()
+            vA = re.sub('vertex', '', line).lstrip().split(' ')
+            line = original.readline()
+            vB = re.sub('vertex', '', line).lstrip().split(' ')
+            line = original.readline()
+            vC = re.sub('vertex', '', line).lstrip().split(' ')
+
+            skip = original.readline() # 'endloop'
+            skip = original.readline() # 'endfacet'
+
+            outFile.write(struct.pack('fff', float(normal[0]),float(normal[1]),float(normal[2])))
+            outFile.write(struct.pack('fff', float(vA[0]),float(vA[1]),float(vA[2])))
+            outFile.write(struct.pack('fff', float(vB[0]),float(vB[1]),float(vB[2])))
+            outFile.write(struct.pack('fff', float(vC[0]),float(vC[1]),float(vC[2])))
+            outFile.write(b'\0\0')
+
+        outFile.seek(80)
+        outFile.write(struct.pack('<L', triCount))
+        outFile.close()
+
+
 if __name__ == '__main__':
     wrl_file = sys.argv[1]
 
-    if os.path.splitext(wrl_file)[1] != '.wrl':
-        print('This is not a wrl file, I will not parse this.')
-        sys.exit()
+    # if os.path.splitext(wrl_file)[1] != '.wrl':
+    #     print('This is not a wrl file, I will not parse this.')
+    #     sys.exit()
+    """
+    Come up with a better way to make sure the file is wrl.
+    """
 
-    wrlToStl(wrl_file)
+    w = wrlToStl(wrl_file)
