@@ -1,2 +1,4 @@
 pymol/
 test/
+__pycache__/
+.vscode/

@@ -18,9 +18,9 @@ basic mesh editing software so far so I am not worried yet.
 """
 
 class wrlToStl():
-    def __init__(self, wrl, format='binary'):
+    def __init__(self, wrl=None, format='binary'):
 
-        if wrl != 'None':
+        if wrl != None:
             self.wrl_file = open(wrl, 'r')
             self.basename = os.path.splitext(wrl)[0]
             self.vertices = []
@@ -34,7 +34,7 @@ class wrlToStl():
                 self.writeAsciiStl()
 
         else:
-            pass
+            print('No wrl file provided!')
 
     def getVertices(self):
         # get to the list of vertices
@@ -70,6 +70,7 @@ class wrlToStl():
             self.vert_normals.append([float(i) for i in line[0:3]])
 
     def calculateFaceNormals(self):
+        # could loop over a range instead of the actual vert normal list
         # calculate face normals
         for idx, v in enumerate(self.vert_normals):
             i = idx * 3
@@ -183,7 +184,8 @@ class wrlToStl():
         outFile.write(b'ffff') #triangle count tbd
         triCount = 0
 
-        skip = original.readline() #solid
+        # skips a line
+        original.readline() #solid
 
         while 1:
             line = original.readline()
@@ -194,7 +196,8 @@ class wrlToStl():
             line = re.sub('facet normal', '', line).lstrip()
             print(line)
             normal = line.split(' ')
-            skip = original.readline() # 'outer loop'
+            # skip the line
+            original.readline() # 'outer loop'
 
             line = original.readline()
             vA = re.sub('vertex', '', line).lstrip().split(' ')
@@ -203,8 +206,8 @@ class wrlToStl():
             line = original.readline()
             vC = re.sub('vertex', '', line).lstrip().split(' ')
 
-            skip = original.readline() # 'endloop'
-            skip = original.readline() # 'endfacet'
+            original.readline() # 'endloop'
+            original.readline() # 'endfacet'
 
             outFile.write(struct.pack('fff', float(normal[0]),float(normal[1]),float(normal[2])))
             outFile.write(struct.pack('fff', float(vA[0]),float(vA[1]),float(vA[2])))
