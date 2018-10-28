@@ -21,11 +21,11 @@ def downsample(points, percent):
 
     return ds_points
 
-def plotTheDots(p_raw):
+def plotTheDots(p_raw, ds_percent):
     """
     Takes points, an array of (x,y,z), and plots in 3d space.
     """
-    p_raw_ds = downsample(p_raw, .2)
+    p_raw_ds = downsample(p_raw, ds_percent)
     points = []
     for i in p_raw_ds:
         point = [0,0,0]

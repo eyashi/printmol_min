@@ -2,3 +2,5 @@ pymol/
 test/
 __pycache__/
 .vscode/
+imgs/
+.DS_Store

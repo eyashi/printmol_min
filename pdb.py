@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 class pdb(object):
     def __init__(self):
@@ -24,7 +25,8 @@ class pdb(object):
 
         if 'ATOM' in units[0]:
             # get the 3d points [x, y, z]
-            self.points.append([line[31:39], line[39:47], line[48:55]])
+            self.points.append([float(line[31:39]),float(line[39:46]), float(line[48:55])])
+
 
     def parsePDB(self, pdb_file):
         with open(pdb_file, 'r') as read_file:
@@ -33,8 +35,13 @@ class pdb(object):
         for line in lines:
             self.parseLine(line)
 
+        self.np_points = np.array(self.points)
+        self.x = [i[0] for i in self.points]
+        self.y = [i[1] for i in self.points]
+        self.z = [i[2] for i in self.points]
+
 if __name__ == "__main__":
     a = pdb()
     a.parsePDB(os.path.join('test', '1fjg.pdb'))
 
-    print(a.points)
+    print(a.np_points.shape)
